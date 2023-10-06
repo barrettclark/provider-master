@@ -22,6 +22,9 @@ provider "tfe" {
 }
 
 # Variables
+variable "github_oauth_token" {
+  type = string
+}
 variable "hostname" {
   type = string
 }
@@ -31,6 +34,12 @@ variable "owner_email" {
 variable "tfe_token" {
   type = string
 }
+variable "aws_access_key_id" {
+  type = string
+}
+variable "aws_secret_access_key" {
+  type = string
+}
 
 # --- ORGANIZATION
 # Create an organization
@@ -38,9 +47,12 @@ variable "tfe_token" {
 # to allow the creation of teams
 # https://app.staging.terraform.io/app/admin/organizations/barretto-provider-made
 resource "tfe_organization" "org" {
-  name                          = "barretto-provider-made"
-  email                         = var.owner_email
-  allow_force_delete_workspaces = true
+  name                                                    = "barretto-provider-made"
+  email                                                   = var.owner_email
+  allow_force_delete_workspaces                           = true
+  assessments_enforced                                    = true
+  cost_estimation_enabled                                 = true
+  send_passing_statuses_for_untriggered_speculative_plans = true
 }
 
 #
@@ -122,6 +134,10 @@ resource "tfe_project" "project1" {
   organization = tfe_organization.org.name
   name         = "project1"
 }
+resource "tfe_project" "helloworld" {
+  organization = tfe_organization.org.name
+  name         = "helloworld"
+}
 
 # --- RUN TASKS
 resource "tfe_organization_run_task" "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
@@ -130,6 +146,53 @@ resource "tfe_organization_run_task" "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
   name         = "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW-name"
   enabled      = true
   description  = "Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur,"
+}
+
+# --- OAUTH CLIENTS
+resource "tfe_oauth_client" "github-oauth-client" {
+  name             = "github-oauth-client"
+  organization     = tfe_organization.org.name
+  api_url          = "https://api.github.com"
+  http_url         = "https://github.com"
+  oauth_token      = var.github_oauth_token
+  service_provider = "github"
+}
+
+# --- VARIABLE SETS
+resource "tfe_variable_set" "aws-credentials" {
+  name         = "AWS Credentials"
+  organization = tfe_organization.org.name
+}
+resource "tfe_variable" "aws-access-key" {
+  key             = "AWS_ACCESS_KEY_ID"
+  value           = var.aws_access_key_id
+  category        = "env"
+  variable_set_id = tfe_variable_set.aws-credentials.id
+  sensitive       = true
+}
+resource "tfe_variable" "aws-secret-access-key" {
+  key             = "AWS_SECRET_ACCESS_KEY"
+  value           = var.aws_secret_access_key
+  category        = "env"
+  variable_set_id = tfe_variable_set.aws-credentials.id
+  sensitive       = true
+}
+
+# --- POLICY SETS
+resource "tfe_policy_set" "learn-terraform-enforce-policies" {
+  name          = "learn-terraform-enforce-policies"
+  description   = "A brand new policy set"
+  organization  = tfe_organization.org.name
+  kind          = "sentinel"
+  policies_path = "policies/my-policy-set"
+  workspace_ids = [tfe_workspace.wk2.id]
+
+  vcs_repo {
+    identifier         = "barrettclark/learn-terraform-enforce-policies"
+    branch             = "master"
+    ingress_submodules = false
+    oauth_token_id     = tfe_oauth_client.github-oauth-client.oauth_token_id
+  }
 }
 
 # --- WORKSPACES
@@ -205,4 +268,113 @@ resource "tfe_team_access" "dev-limited" {
     run_tasks         = false
     workspace_locking = false
   }
+}
+
+resource "tfe_workspace" "foo" {
+  name              = "foo"
+  organization      = tfe_organization.org.name
+  terraform_version = "0.12.0"
+}
+resource "tfe_workspace_run_task" "foo-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.foo.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "greedy" {
+  name              = "greedy"
+  organization      = tfe_organization.org.name
+  terraform_version = "1.3.7"
+}
+resource "tfe_workspace_run_task" "greedy-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.greedy.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "greedy2" {
+  name              = "greedy2"
+  organization      = tfe_organization.org.name
+  terraform_version = "1.3.7"
+}
+resource "tfe_workspace_run_task" "greedy2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.greedy2.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "hw1" {
+  name              = "hw1"
+  organization      = tfe_organization.org.name
+  project_id        = tfe_project.helloworld.id
+  terraform_version = "1.5.1"
+  tag_names         = ["helloworld"]
+}
+resource "tfe_workspace_run_task" "hw1-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.hw1.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "hw2" {
+  name              = "hw2"
+  organization      = tfe_organization.org.name
+  project_id        = tfe_project.helloworld.id
+  terraform_version = "1.5.1"
+  tag_names         = ["helloworld"]
+}
+resource "tfe_workspace_run_task" "hw2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.hw2.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "terraform-minimum" {
+  name                  = "terraform-minimum"
+  organization          = tfe_organization.org.name
+  terraform_version     = "1.4.1"
+  file_triggers_enabled = false
+  vcs_repo {
+    identifier     = "barrettclark/terraform-minimum"
+    oauth_token_id = tfe_oauth_client.github-oauth-client.oauth_token_id
+  }
+}
+resource "tfe_workspace_run_task" "terraform-minimum-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.terraform-minimum.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+
+resource "tfe_workspace" "wk1" {
+  name              = "wk1"
+  organization      = tfe_organization.org.name
+  terraform_version = "1.4.4"
+}
+resource "tfe_workspace_run_task" "wk1-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.wk1.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
+}
+resource "tfe_workspace_variable_set" "wk1-aws-credentials" {
+  workspace_id    = tfe_workspace.wk1.id
+  variable_set_id = tfe_variable_set.aws-credentials.id
+}
+
+resource "tfe_workspace" "wk2" {
+  name              = "wk2"
+  organization      = tfe_organization.org.name
+  terraform_version = "1.4.4"
+}
+resource "tfe_workspace_run_task" "wk2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
+  workspace_id      = resource.tfe_workspace.wk2.id
+  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
+  stage             = "post_plan"
+  enforcement_level = "advisory"
 }
