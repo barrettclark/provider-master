@@ -69,6 +69,10 @@ resource "tfe_organization_membership" "bclark1" {
   organization = tfe_organization.org.name
   email        = "bclark1@yahoo.com"
 }
+data "tfe_organization_membership" "owner" {
+  organization = tfe_organization.org.id
+  email        = var.owner_email
+}
 
 # --- TEAMS
 data "tfe_team" "owners" {
@@ -172,3 +176,33 @@ resource "tfe_workspace_run_task" "contain-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
   enforcement_level = "advisory"
 }
 
+resource "tfe_workspace" "dev" {
+  name         = "dev"
+  organization = tfe_organization.org.name
+}
+resource "tfe_variable" "idpub" {
+  key          = "idpub"
+  category     = "terraform"
+  workspace_id = tfe_workspace.dev.id
+  value        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC68PHkObbQx97Zmb9frycadinKm55clKzr4k1DqQN3ZLwcQNmfznBIrVqDipPS6N4o6Piew7Snxwb8P6cIKrHTX9dsRXUf5JgX9TgfJntpON9ii3Dlh7ctmg2iRDCvC+6vd5krL6MTN6TqXJeINB7QibbUksSGY4u4B9P9Yg1UwMOt0sA8EIZELZLqlmW3d9xjac0WrUkXSq3r5Fttb4QMU/RrlkX3fE40bn+YcOSYGkSaqBYFdDHWDNzvCvfmZsQ1zJ1cdNp8qUwgd09J+uZ+p5pXLrsWyXlirBnXlbm95TtiY2qzEZJ/L36WsSnVIlAfmlvHaH5O/aqI8ZKrHQoSmLBbkt4FFlm4auQgQPBBRwK/x9+YcgzmtD1Sgm01jGGGr/WeLEoyhDhMH6uUPNweWVh/aif/9TmPRCKYaXfvBWWzF0Tqb74KLLt4ItSAhInessowSbGrDByz9y9sDtF8Fv1qur0udNFSrzo0saKgjHheLKy1hDxxUb34TCFzP/M= barrettclark@barrettclark-C02G60Y5MD6Q"
+}
+resource "tfe_notification_configuration" "dev-notification" {
+  name             = "Email Notification"
+  workspace_id     = tfe_workspace.dev.id
+  enabled          = true
+  destination_type = "email"
+  triggers         = ["run:completed", "run:applying", "run:planning", "run:needs_attention"]
+  email_user_ids   = [data.tfe_organization_membership.owner.user_id]
+}
+resource "tfe_team_access" "dev-limited" {
+  workspace_id = tfe_workspace.dev.id
+  team_id      = tfe_team.limited.id
+  permissions {
+    runs              = "read"
+    variables         = "none"
+    state_versions    = "read-outputs"
+    sentinel_mocks    = "none"
+    run_tasks         = false
+    workspace_locking = false
+  }
+}
