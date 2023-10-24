@@ -126,6 +126,10 @@ resource "tfe_team_member" "limited_members" {
 
 # --- PROJECTS
 # Create a project
+data "tfe_project" "default" {
+  organization = tfe_organization.org.name
+  name         = "Default Project"
+}
 resource "tfe_project" "prj_long_name" {
   organization = tfe_organization.org.name
   name         = "a_really_long_name"
@@ -178,7 +182,31 @@ resource "tfe_variable" "aws-secret-access-key" {
   sensitive       = true
 }
 
+# --- POLICIES
+resource "tfe_sentinel_policy" "tag-required" {
+  name         = "tag-required"
+  description  = "The helloworld tag is required"
+  organization = tfe_organization.org.name
+  enforce_mode = "soft-mandatory"
+  policy       = <<EOT
+import "tfrun"
+main = "helloworld" in tfrun.workspace.tags
+EOT
+}
+
 # --- POLICY SETS
+resource "tfe_policy_set" "helloworld-tag-required" {
+  name         = "helloworld-tag-required"
+  description  = "Soft require the helloworld tag on all workspaces in the Default project"
+  organization = tfe_organization.org.name
+  kind         = "sentinel"
+  policy_ids   = [tfe_sentinel_policy.tag-required.id]
+}
+resource "tfe_project_policy_set" "helloworld-tag-required" {
+  policy_set_id = tfe_policy_set.helloworld-tag-required.id
+  project_id    = data.tfe_project.default.id
+}
+
 resource "tfe_policy_set" "learn-terraform-enforce-policies" {
   name          = "learn-terraform-enforce-policies"
   description   = "A brand new policy set"
