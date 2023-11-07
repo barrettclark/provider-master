@@ -183,10 +183,11 @@ resource "tfe_variable" "aws-secret-access-key" {
 }
 
 # --- POLICIES
-resource "tfe_sentinel_policy" "tag-required" {
+resource "tfe_policy" "tag-required" {
   name         = "tag-required"
   description  = "The helloworld tag is required"
   organization = tfe_organization.org.name
+  kind         = "sentinel"
   enforce_mode = "soft-mandatory"
   policy       = <<EOT
 import "tfrun"
@@ -200,7 +201,7 @@ resource "tfe_policy_set" "helloworld-tag-required" {
   description  = "Soft require the helloworld tag on all workspaces in the Default project"
   organization = tfe_organization.org.name
   kind         = "sentinel"
-  policy_ids   = [tfe_sentinel_policy.tag-required.id]
+  policy_ids   = [tfe_policy.tag-required.id]
 }
 resource "tfe_project_policy_set" "helloworld-tag-required" {
   policy_set_id = tfe_policy_set.helloworld-tag-required.id
@@ -213,7 +214,7 @@ resource "tfe_policy_set" "learn-terraform-enforce-policies" {
   organization  = tfe_organization.org.name
   kind          = "sentinel"
   policies_path = "policies/my-policy-set"
-  workspace_ids = [tfe_workspace.wk2.id]
+  workspace_ids = [module.wk2.workspace_id]
 
   vcs_repo {
     identifier         = "barrettclark/learn-terraform-enforce-policies"
@@ -298,68 +299,56 @@ resource "tfe_team_access" "dev-limited" {
   }
 }
 
-resource "tfe_workspace" "foo" {
-  name              = "foo"
-  organization      = tfe_organization.org.name
+module "foo" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "foo"
   terraform_version = "0.12.0"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
-resource "tfe_workspace_run_task" "foo-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.foo.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+resource "tfe_variable" "foo-a" {
+  key          = "a"
+  category     = "terraform"
+  workspace_id = module.foo.workspace_id
 }
 
-resource "tfe_workspace" "greedy" {
-  name              = "greedy"
-  organization      = tfe_organization.org.name
+module "greedy" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "greedy"
   terraform_version = "1.3.7"
-}
-resource "tfe_workspace_run_task" "greedy-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.greedy.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
 
-resource "tfe_workspace" "greedy2" {
-  name              = "greedy2"
-  organization      = tfe_organization.org.name
+module "greedy2" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "greedy2"
   terraform_version = "1.3.7"
-}
-resource "tfe_workspace_run_task" "greedy2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.greedy2.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
 
-resource "tfe_workspace" "hw1" {
-  name              = "hw1"
-  organization      = tfe_organization.org.name
-  project_id        = tfe_project.helloworld.id
+module "hw1" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "hw1"
   terraform_version = "1.5.1"
   tag_names         = ["helloworld"]
-}
-resource "tfe_workspace_run_task" "hw1-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.hw1.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
 
-resource "tfe_workspace" "hw2" {
-  name              = "hw2"
-  organization      = tfe_organization.org.name
-  project_id        = tfe_project.helloworld.id
+module "hw2" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "hw2"
   terraform_version = "1.5.1"
   tag_names         = ["helloworld"]
-}
-resource "tfe_workspace_run_task" "hw2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.hw2.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
 
 resource "tfe_workspace" "terraform-minimum" {
@@ -379,30 +368,24 @@ resource "tfe_workspace_run_task" "terraform-minimum-WWWWWWWWWWWWWWWWWWWWWWWWWWW
   enforcement_level = "advisory"
 }
 
-resource "tfe_workspace" "wk1" {
-  name              = "wk1"
-  organization      = tfe_organization.org.name
+module "wk1" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "wk1"
   terraform_version = "1.4.4"
-}
-resource "tfe_workspace_run_task" "wk1-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.wk1.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
 resource "tfe_workspace_variable_set" "wk1-aws-credentials" {
-  workspace_id    = tfe_workspace.wk1.id
+  workspace_id    = module.wk1.workspace_id
   variable_set_id = tfe_variable_set.aws-credentials.id
 }
 
-resource "tfe_workspace" "wk2" {
-  name              = "wk2"
-  organization      = tfe_organization.org.name
+module "wk2" {
+  source            = "./modules/workspace-with-runtask"
+  organization_name = tfe_organization.org.name
+  project_id        = data.tfe_project.default.id
+  workspace_name    = "wk2"
   terraform_version = "1.4.4"
-}
-resource "tfe_workspace_run_task" "wk2-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
-  workspace_id      = resource.tfe_workspace.wk2.id
-  task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = "post_plan"
-  enforcement_level = "advisory"
+  run_task_id       = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
 }
