@@ -261,6 +261,15 @@ resource "tfe_variable" "bbb" {
   category     = "terraform"
   workspace_id = tfe_workspace.contain.id
 }
+resource "tfe_variable" "hclvar1" {
+  key          = "hclvar1"
+  value        = file("contain_var.hcl")
+  category     = "terraform"
+  description  = "variable"
+  hcl          = true
+  sensitive    = false
+  workspace_id = tfe_workspace.contain.id
+}
 resource "tfe_workspace_run_task" "contain-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW" {
   workspace_id      = resource.tfe_workspace.contain.id
   task_id           = resource.tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
