@@ -124,6 +124,15 @@ resource "tfe_team_member" "limited_members" {
   username = tfe_organization_membership.bclark1.username
 }
 
+resource "tfe_team_token" "k8s_token" {
+  team_id          = tfe_team.k8s.id
+  force_regenerate = true
+}
+output "k8s_token" {
+  value     = tfe_team_token.k8s_token.token
+  sensitive = true
+}
+
 # --- PROJECTS
 # Create a project
 data "tfe_project" "default" {
@@ -132,7 +141,7 @@ data "tfe_project" "default" {
 }
 resource "tfe_project" "prj_long_name" {
   organization = tfe_organization.org.name
-  name         = "a_really_long_name"
+  name         = "A Really Long Name"
 }
 resource "tfe_project" "project1" {
   organization = tfe_organization.org.name
