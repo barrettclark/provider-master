@@ -9,7 +9,7 @@ This automation script facilitates the bulk migration of Terraform configuration
 ## 2. Prerequisites
 
 * **Terraform CLI:** Version 1.1.0 or higher.
-* **Python 3.x:** Required library: `requests` (`pip install requests`).
+* **Python 3.x:** Install deps with `pip install -r requirements.txt` (or `pip install requests`).
 * **TFC/TFE Token:** API token with **Manage Workspaces** permissions.
 * **Network Access:** Connectivity to your TFC/TFE hostname.
 
@@ -39,26 +39,22 @@ The script is designed to be safe for production use through several layers of v
 
 ## 5. Execution Workflow
 
-### Step 1: Initialize the Script
+### Step 1: Perform a Dry Run
 
-Edit the `TARGET_DIRECTORIES` and `DEFAULT_HOSTNAME` constants at the top of `migrate_tfc.py`.
-
-### Step 2: Perform a Dry Run
-
-Always run without the execution flag first to see a preview of HCL changes and API actions.
+Always run without the execution flag first to see a preview of HCL changes and API actions. By default the script targets the current directory (`.`). Use `-d`/`--directory` to migrate specific dirs (repeatable).
 
 ```bash
-python3 migrate_tfc.py --token "your_token"
-
+python3 migrate_tfc.py
+python3 migrate_tfc.py -d /path/to/stack1 -d /path/to/stack2
 ```
 
-### Step 3: Execute Migration
+### Step 2: Execute Migration
 
-Add the `--no-dry-run` flag. You will be prompted to type `YES` before any file modifications begin.
+Add `--no-dry-run`. You will be prompted to type `YES` before any file modifications. Use `--backup` to create `.bak` copies of modified files.
 
 ```bash
 python3 migrate_tfc.py --token "your_token" --no-dry-run
-
+python3 migrate_tfc.py --token "your_token" --no-dry-run --backup -d ./mystack
 ```
 
 ---
