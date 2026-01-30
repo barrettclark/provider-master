@@ -1,0 +1,12 @@
+# Copy this file to main.auto.tfvars and fill in your values
+# Or use environment variables with TF_VAR_ prefix
+# DO NOT commit main.auto.tfvars to version control
+
+# hostname = "app.staging.terraform.io"
+# owner_email = "your-email@example.com"
+
+# Sensitive values should be provided via environment variables:
+# export TF_VAR_tfe_token="your-token"
+# export TF_VAR_github_oauth_token="your-github-token"
+# export TF_VAR_aws_access_key_id="your-aws-key"
+# export TF_VAR_aws_secret_access_key="your-aws-secret"
