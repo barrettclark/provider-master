@@ -1,4 +1,4 @@
-resource "tfe_policy" "tag-required" {
+resource "tfe_policy" "tag_required" {
   name         = "tag-required"
   description  = "The helloworld tag is required"
   organization = local.organization_name
@@ -10,20 +10,20 @@ main = "helloworld" in tfrun.workspace.tags
 EOT
 }
 
-resource "tfe_policy_set" "helloworld-tag-required" {
+resource "tfe_policy_set" "helloworld_tag_required" {
   name         = "helloworld-tag-required"
   description  = "Soft require the helloworld tag on all workspaces in the Default project"
   organization = local.organization_name
   kind         = "sentinel"
-  policy_ids   = [tfe_policy.tag-required.id]
+  policy_ids   = [tfe_policy.tag_required.id]
 }
 
-resource "tfe_project_policy_set" "helloworld-tag-required" {
-  policy_set_id = tfe_policy_set.helloworld-tag-required.id
+resource "tfe_project_policy_set" "helloworld_tag_required" {
+  policy_set_id = tfe_policy_set.helloworld_tag_required.id
   project_id    = data.tfe_project.default.id
 }
 
-resource "tfe_policy_set" "learn-terraform-enforce-policies" {
+resource "tfe_policy_set" "learn_terraform_enforce_policies" {
   name          = "learn-terraform-enforce-policies"
   description   = "A brand new policy set"
   organization  = local.organization_name
@@ -35,6 +35,6 @@ resource "tfe_policy_set" "learn-terraform-enforce-policies" {
     identifier         = "barrettclark/learn-terraform-enforce-policies"
     branch             = "master"
     ingress_submodules = false
-    oauth_token_id     = tfe_oauth_client.github-oauth-client.oauth_token_id
+    oauth_token_id     = tfe_oauth_client.github_oauth_client.oauth_token_id
   }
 }

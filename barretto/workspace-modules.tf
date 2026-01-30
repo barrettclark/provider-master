@@ -20,5 +20,5 @@ resource "tfe_variable" "foo_a" {
 
 resource "tfe_workspace_variable_set" "wk1_aws_credentials" {
   workspace_id    = module.workspaces["wk1"].workspace_id
-  variable_set_id = tfe_variable_set.aws-credentials.id
+  variable_set_id = module.aws_credentials.variable_set_id
 }

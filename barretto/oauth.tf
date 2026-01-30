@@ -1,4 +1,4 @@
-resource "tfe_oauth_client" "github-oauth-client" {
+resource "tfe_oauth_client" "github_oauth_client" {
   name             = "github-oauth-client"
   organization     = local.organization_name
   api_url          = "https://api.github.com"

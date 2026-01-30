@@ -64,7 +64,7 @@ resource "tfe_variable" "dev_idpub" {
   value        = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC68PHkObbQx97Zmb9frycadinKm55clKzr4k1DqQN3ZLwcQNmfznBIrVqDipPS6N4o6Piew7Snxwb8P6cIKrHTX9dsRXUf5JgX9TgfJntpON9ii3Dlh7ctmg2iRDCvC+6vd5krL6MTN6TqXJeINB7QibbUksSGY4u4B9P9Yg1UwMOt0sA8EIZELZLqlmW3d9xjac0WrUkXSq3r5Fttb4QMU/RrlkX3fE40bn+YcOSYGkSaqBYFdDHWDNzvCvfmZsQ1zJ1cdNp8qUwgd09J+uZ+p5pXLrsWyXlirBnXlbm95TtiY2qzEZJ/L36WsSnVIlAfmlvHaH5O/aqI8ZKrHQoSmLBbkt4FFlm4auQgQPBBRwK/x9+YcgzmtD1Sgm01jGGGr/WeLEoyhDhMH6uUPNweWVh/aif/9TmPRCKYaXfvBWWzF0Tqb74KLLt4ItSAhInessowSbGrDByz9y9sDtF8Fv1qur0udNFSrzo0saKgjHheLKy1hDxxUb34TCFzP/M= barrettclark@barrettclark-C02G60Y5MD6Q"
 }
 
-resource "tfe_notification_configuration" "dev-notification" {
+resource "tfe_notification_configuration" "dev_notification" {
   name             = "Email Notification"
   workspace_id     = tfe_workspace.dev.id
   enabled          = true
@@ -73,9 +73,9 @@ resource "tfe_notification_configuration" "dev-notification" {
   email_user_ids   = [data.tfe_organization_membership.owner.user_id]
 }
 
-resource "tfe_team_access" "dev-limited" {
+resource "tfe_team_access" "dev_limited" {
   workspace_id = tfe_workspace.dev.id
-  team_id      = tfe_team.limited.id
+  team_id      = module.limited_team.team_id
   permissions {
     runs              = "read"
     variables         = "none"
@@ -94,11 +94,11 @@ resource "tfe_workspace" "terraform-minimum" {
   file_triggers_enabled = false
   vcs_repo {
     identifier     = "barrettclark/terraform-minimum"
-    oauth_token_id = tfe_oauth_client.github-oauth-client.oauth_token_id
+    oauth_token_id = tfe_oauth_client.github_oauth_client.oauth_token_id
   }
 }
 
-resource "tfe_workspace_run_task" "terraform-minimum_run_task" {
+resource "tfe_workspace_run_task" "terraform_minimum_run_task" {
   workspace_id      = tfe_workspace.terraform-minimum.id
   task_id           = tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
   stage             = local.default_run_task.stage

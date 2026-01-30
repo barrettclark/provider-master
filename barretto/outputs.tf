@@ -6,6 +6,6 @@ output "org_token" {
 
 output "k8s_token" {
   description = "K8s team API token"
-  value       = tfe_team_token.k8s_token.token
+  value       = module.k8s_team.team_token
   sensitive   = true
 }
