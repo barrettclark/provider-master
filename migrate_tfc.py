@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import List, Optional
 
 import requests
 
@@ -70,6 +71,23 @@ def get_config(args):
     return token, hostname, directories
 
 
+def check_terraform_installed() -> None:
+    """Check if terraform binary is available in PATH."""
+    try:
+        subprocess.run(
+            ["terraform", "version"],
+            capture_output=True,
+            check=True,
+            timeout=10,
+        )
+    except FileNotFoundError:
+        print("❌ ERROR: terraform binary not found. Please install Terraform.")
+        sys.exit(1)
+    except subprocess.CalledProcessError:
+        print("❌ ERROR: terraform binary exists but failed to run.")
+        sys.exit(1)
+
+
 def ensure_tfc_tag(
     hostname: str,
     org: str,
@@ -118,13 +136,13 @@ def ensure_tfc_tag(
         print(f"  └─ API Error: {hostname}: {e}")
 
 
-def discover_tf_files(directory: str) -> list[str]:
+def discover_tf_files(directory: str) -> List[str]:
     """
     Discover all Terraform configuration files (.tf) in the given directory.
     Excludes .tfvars, .tfstate, and backup files.
     Returns a sorted list of filenames (not full paths).
     """
-    excluded_patterns = ('.tfvars', '.tfstate', '.backup')
+    excluded_patterns = ('.tfvars', '.tfstate', '.backup', '.bak')
     tf_files = []
 
     try:
@@ -144,7 +162,7 @@ def discover_tf_files(directory: str) -> list[str]:
 
 def migrate_directory(
     folder: str,
-    token: str | None,
+    token: Optional[str],
     hostname: str,
     dry_run: bool,
     backup: bool,
@@ -160,6 +178,7 @@ def migrate_directory(
         print("  └─ No .tf files found in directory")
         return False
 
+    files_with_backends = []
     for filename in tf_files:
         path = os.path.join(folder, filename)
 
@@ -174,8 +193,26 @@ def migrate_directory(
         if not match:
             continue
 
+        files_with_backends.append(filename)
+
+    # Warn if multiple files contain remote backends
+    if len(files_with_backends) > 1:
+        print(f"  └─ Warning: Found {len(files_with_backends)} files with remote backends: {', '.join(files_with_backends)}")
+        print(f"  └─ Warning: Only the first file ({files_with_backends[0]}) will be migrated")
+
+    # Process the first file with a remote backend
+    for filename in files_with_backends[:1]:
+        path = os.path.join(folder, filename)
+
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        match = REMOTE_BACKEND_RE.search(content)
         ws_info = match.group("backend_content")
+
         # Match patterns but exclude commented lines (lines starting with optional whitespace + #)
+        # Note: This regex won't catch inline comments like: organization = "foo" # comment
+        # For more robust parsing, consider using python-hcl2 library
         org_m = re.search(r'(?m)^(?![\s]*#).*?\borganization\s+=\s+"(?P<val>[^"]+)"', ws_info)
         name_m = re.search(r'(?m)^(?![\s]*#).*?\bname\s+=\s+"(?P<val>[^"]+)"', ws_info)
         pref_m = re.search(r'(?m)^(?![\s]*#).*?\bprefix\s+=\s+"(?P<val>[^"]+)"', ws_info)
@@ -233,6 +270,8 @@ def migrate_directory(
             print(f"  └─ Warning: Could not format {filename}: {e}")
 
         # Run terraform init and automatically answer "yes" to migrate state
+        # Note: -migrate-state flag is NOT compatible with Terraform Cloud migrations
+        # TFC requires interactive prompts, so we pipe "yes" to stdin instead
         process = subprocess.Popen(
             ["terraform", "init"],
             cwd=folder,
@@ -245,7 +284,7 @@ def migrate_directory(
         print(output)
         if process.returncode != 0:
             raise subprocess.CalledProcessError(process.returncode, "terraform init")
-        print(f"  └─ Terraform: Initialized workspace")
+        print(f"  └─ Terraform: Initialized workspace and migrated state")
 
         # Add tag to workspace after init (for prefix-based workspaces)
         if ws_name_api and clean_tag and token:
@@ -257,6 +296,7 @@ def migrate_directory(
 
 def main() -> None:
     args = parse_args()
+    check_terraform_installed()
     token, hostname, directories = get_config(args)
     dry_run = not args.no_dry_run
 
