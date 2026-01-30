@@ -4,21 +4,26 @@ This directory contains Terraform configuration for managing Terraform Cloud/Ent
 
 ## Structure
 
+### Configuration Files
 - `main.tf` - Terraform and provider configuration
 - `variables.tf` - Variable declarations
 - `locals.tf` - Local values and common configurations
 - `data.tf` - Data sources
 - `organization.tf` - Organization, tokens, memberships, and agent pools
-- `teams.tf` - Teams, team members, and team tokens
+- `teams.tf` - Team module configurations and team members
 - `projects.tf` - Projects
 - `run-tasks.tf` - Organization run tasks
 - `oauth.tf` - OAuth clients for VCS integration
-- `variable-sets.tf` - Variable sets and variables
+- `variable-sets.tf` - Variable set module configurations
 - `policies.tf` - Policies and policy sets
 - `workspaces.tf` - Workspace resources (non-module based)
 - `workspace-modules.tf` - Module-based workspace configurations
 - `outputs.tf` - Output values
-- `modules/workspace-with-runtask/` - Reusable module for creating workspaces with run tasks
+
+### Reusable Modules
+- `modules/workspace-with-runtask/` - Module for creating workspaces with run tasks
+- `modules/team/` - Module for creating teams with optional tokens
+- `modules/variable-set/` - Module for creating variable sets with multiple variables
 
 ## Prerequisites
 
@@ -84,3 +89,68 @@ The `workspace-with-runtask` module supports the following features:
 ### Special Workspaces
 
 Workspaces with unique requirements (like `contain`, `dev`, `terraform-minimum`) are defined directly in `workspaces.tf` for clarity, but could be migrated to use the enhanced module with optional parameters if needed.
+
+## Team Management
+
+Teams are managed using the `team` module for consistency and reusability.
+
+### Adding a New Team
+
+```hcl
+module "new_team" {
+  source = "./modules/team"
+
+  organization_name = local.organization_name
+  team_name         = "team-name"
+  create_token      = true  # Optional: set to true to generate a team token
+
+  organization_access = {
+    manage_workspaces = true
+    read_workspaces   = true
+    # Add other permissions as needed
+  }
+}
+
+# Add team members at root level
+resource "tfe_team_member" "new_team_members" {
+  team_id  = module.new_team.team_id
+  username = tfe_organization_membership.user.username
+  depends_on = [tfe_organization_membership.user]
+}
+```
+
+## Variable Set Management
+
+Variable sets are managed using the `variable-set` module for consistency.
+
+### Adding a New Variable Set
+
+```hcl
+module "new_credentials" {
+  source = "./modules/variable-set"
+
+  organization_name = local.organization_name
+  name              = "New Credentials"
+
+  variables = {
+    var1 = {
+      key       = "VAR_NAME_1"
+      value     = var.input_value_1
+      category  = "env"  # or "terraform"
+      sensitive = true
+    }
+    var2 = {
+      key       = "VAR_NAME_2"
+      value     = var.input_value_2
+      category  = "env"
+      sensitive = false
+    }
+  }
+}
+
+# Attach to workspace
+resource "tfe_workspace_variable_set" "workspace_attachment" {
+  workspace_id    = module.workspaces["workspace_name"].workspace_id
+  variable_set_id = module.new_credentials.variable_set_id
+}
+```
