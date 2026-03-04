@@ -47,7 +47,7 @@ resource "tfe_variable" "contain_hclvar1" {
 resource "tfe_workspace_run_task" "contain_run_task" {
   workspace_id      = tfe_workspace.contain.id
   task_id           = tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = local.default_run_task.stage
+  stages            = local.default_run_task.stages
   enforcement_level = local.default_run_task.enforcement_level
 }
 
@@ -101,6 +101,6 @@ resource "tfe_workspace" "terraform-minimum" {
 resource "tfe_workspace_run_task" "terraform_minimum_run_task" {
   workspace_id      = tfe_workspace.terraform-minimum.id
   task_id           = tfe_organization_run_task.WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.id
-  stage             = local.default_run_task.stage
+  stages            = local.default_run_task.stages
   enforcement_level = local.default_run_task.enforcement_level
 }

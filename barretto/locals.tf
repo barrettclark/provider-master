@@ -3,7 +3,7 @@ locals {
 
   # Common run task configuration
   default_run_task = {
-    stage             = "post_plan"
+    stages            = ["post_plan"]
     enforcement_level = "advisory"
   }
 

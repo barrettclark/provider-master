@@ -39,10 +39,10 @@ variable "run_task_id" {
   type        = string
 }
 
-variable "run_task_stage" {
-  description = "The stage for the run task (pre_plan, post_plan, pre_apply)"
-  type        = string
-  default     = "post_plan"
+variable "run_task_stages" {
+  description = "The stages for the run task (pre_plan, post_plan, pre_apply, post_apply)"
+  type        = list(string)
+  default     = ["post_plan"]
 }
 
 variable "run_task_enforcement_level" {
@@ -126,7 +126,7 @@ resource "tfe_workspace" "workspace" {
 resource "tfe_workspace_run_task" "run_task" {
   workspace_id      = tfe_workspace.workspace.id
   task_id           = var.run_task_id
-  stage             = var.run_task_stage
+  stages            = var.run_task_stages
   enforcement_level = var.run_task_enforcement_level
 }
 
