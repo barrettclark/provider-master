@@ -39,3 +39,13 @@ terraform.rc
 
 # End of https://www.toptal.com/developers/gitignore/api/terraform
 *.bak
+TODO.txt
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Keep example files
+!.env.example
