@@ -46,8 +46,8 @@ variable "aws_access_key_id" {
   sensitive   = true
 
   validation {
-    condition     = can(regex("^AKIA[0-9A-Z]{16}$", var.aws_access_key_id))
-    error_message = "AWS access key ID must start with AKIA and be 20 characters long."
+    condition     = can(regex("^(AKIA|ASIA)[0-9A-Z]{16}$", var.aws_access_key_id))
+    error_message = "AWS access key ID must start with AKIA (long-term) or ASIA (temporary) and be 20 characters long."
   }
 }
 
