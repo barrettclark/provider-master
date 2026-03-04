@@ -27,21 +27,54 @@ This directory contains Terraform configuration for managing Terraform Cloud/Ent
 
 ## Prerequisites
 
-1. Terraform >= 1.4.0
-2. Terraform Cloud/Enterprise API token
-3. GitHub OAuth token (if using VCS integration)
-4. AWS credentials (if using AWS variable sets)
+1. Terraform ~> 1.10 (1.10.0 or later)
+2. TFE Provider ~> 0.60.0
+3. Terraform Cloud/Enterprise API token
+4. GitHub OAuth token (if using VCS integration)
+5. AWS credentials (if using AWS variable sets)
 
 ## Setup
 
-1. Copy `main.auto.tfvars.example` to `main.auto.tfvars` and fill in non-sensitive values
-2. Set sensitive variables as environment variables:
-   ```bash
-   export TF_VAR_tfe_token="your-token"
-   export TF_VAR_github_oauth_token="your-github-token"
-   export TF_VAR_aws_access_key_id="your-aws-key"
-   export TF_VAR_aws_secret_access_key="your-aws-secret"
-   ```
+### Credential Management
+
+Sensitive credentials should **never** be committed to version control. Use one of these methods:
+
+**Option 1: Environment Variables (Recommended for Local)**
+```bash
+cp .env.example .env
+# Edit .env with your actual credentials
+source .env
+```
+
+**Option 2: HCP Terraform Workspace Variables (Recommended for Remote)**
+Set these as sensitive workspace variables in HCP Terraform:
+- `TF_VAR_tfe_token`
+- `TF_VAR_github_oauth_token`
+- `TF_VAR_aws_access_key_id`
+- `TF_VAR_aws_secret_access_key`
+
+**Option 3: Local tfvars (Gitignored)**
+```bash
+# Create terraform.tfvars (automatically excluded from git)
+cat > terraform.tfvars <<EOF
+tfe_token             = "your-token"
+github_oauth_token    = "your-github-token"
+aws_access_key_id     = "your-aws-key"
+aws_secret_access_key = "your-aws-secret"
+EOF
+```
+
+### Variable Validation
+
+All variables include validation rules:
+- `hostname` - Must be a valid DNS name
+- `owner_email` - Must be a valid email address
+- `tfe_token` - Minimum 20 characters
+- `github_oauth_token` - Must match GitHub token format (ghp_, gho_, etc.)
+- `aws_access_key_id` - Must match AWS format (AKIA...)
+- `aws_secret_access_key` - Must be exactly 40 characters
+
+These validations catch configuration errors early, before API calls.
 
 ## Important Notes
 
@@ -83,7 +116,7 @@ The `workspace-with-runtask` module supports the following features:
 - `structured_run_output_enabled` - Enable structured run output
 - `notification_configuration` - Notification settings including name, enabled, destination_type, triggers, and email_user_ids or url
 - `team_access` - Map of team access configurations with team_id and permissions
-- `run_task_stage` - Run task stage (default: "post_plan")
+- `run_task_stages` - Run task stages as a list (default: ["post_plan"])
 - `run_task_enforcement_level` - Run task enforcement (default: "advisory")
 
 ### Special Workspaces
@@ -154,3 +187,39 @@ resource "tfe_workspace_variable_set" "workspace_attachment" {
   variable_set_id = module.new_credentials.variable_set_id
 }
 ```
+
+## Module Testing
+
+All modules include comprehensive test suites using Terraform's native testing framework.
+
+### Running Tests
+
+**First-time setup** - Initialize each module (one-time):
+```bash
+(cd modules/workspace-with-runtask && terraform init)
+(cd modules/team && terraform init)
+(cd modules/variable-set && terraform init)
+```
+
+**Test a single module** (from barretto directory):
+```bash
+(cd modules/workspace-with-runtask && terraform test)
+(cd modules/team && terraform test)
+(cd modules/variable-set && terraform test)
+```
+
+**Test all modules:**
+```bash
+for module in modules/*/; do
+  echo "Testing $module"
+  (cd "$module" && terraform test)
+done
+```
+
+### Test Coverage
+
+- **workspace-with-runtask**: 5 test scenarios covering minimal config, VCS integration, custom run tasks, and outputs
+- **team**: 4 test scenarios covering basic teams, organization access, tokens, and permissions
+- **variable-set**: 6 test scenarios covering empty sets, single/multiple variables, sensitive vars, HCL vars, and descriptions
+
+Tests use `command = plan` to validate configuration without making actual API calls.
